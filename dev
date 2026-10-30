@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")"
+IMAGE=localhost/tt-1bit-dev
+if [ "$1" = "--build" ]; then
+    shift
+    podman build -t "$IMAGE" -f container/Containerfile .
+fi
+podman image exists "$IMAGE" || podman build -t "$IMAGE" -f container/Containerfile .
+TTY=; [ -t 0 ] && TTY=-it
+exec podman run --rm $TTY -v "$PWD:/work:Z" -v tt-pdk:/pdk "$IMAGE" "${@:-bash}"

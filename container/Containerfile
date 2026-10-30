@@ -1,0 +1,17 @@
+FROM ghcr.io/librelane/librelane:3.0.14
+
+RUN nix-env -iA nixpkgs.gnumake nixpkgs.gnused nixpkgs.gnugrep nixpkgs.gawk nixpkgs.coreutils nixpkgs.findutils nixpkgs.which nixpkgs.cairo && nix-collect-garbage -d
+
+COPY test/requirements.txt /ttsetup/test_requirements.txt
+RUN git clone --depth 1 https://github.com/TinyTapeout/tt-support-tools /ttsetup/tt-support-tools && \
+    python3 -m venv --system-site-packages /ttsetup/venv && \
+    /ttsetup/venv/bin/pip install --no-cache-dir -r /ttsetup/test_requirements.txt && \
+    sed -E 's/==.*//' /ttsetup/tt-support-tools/requirements.txt > /ttsetup/tt_requirements.txt && \
+    /ttsetup/venv/bin/pip install --no-cache-dir -r /ttsetup/tt_requirements.txt && \
+    printf '#!/bin/sh\nLD_LIBRARY_PATH=/root/.nix-profile/lib exec python /ttsetup/tt-support-tools/tt_tool.py "$@"\n' > /ttsetup/venv/bin/tt_tool && \
+    chmod +x /ttsetup/venv/bin/tt_tool
+
+ENV PATH=/ttsetup/venv/bin:$PATH \
+    PDK_ROOT=/pdk \
+    PDK=sky130A
+WORKDIR /work
